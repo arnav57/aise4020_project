@@ -1,4 +1,3 @@
-
 # AISE4020 - Academic Weapons 
 
 ## ECE Project Raspberry-Pi Car
@@ -15,10 +14,11 @@ We chose to do the ECE Pi-Car Project (2025-26) Below are the group members and 
 ## Software Architecture
 
 The main software for our car will be implemented via ROS2 (Jazzy). This repo will hold the stuff for the project.
-*Note that we are using an Ubuntu 24.04.03 VM for development*
+*Note that for software stuff should be using an Ubuntu 24.04.03 VM for development*
 
 ROS2 works a lot like a block diagram with several blocks (**Nodes**), and communications between them (**Topics**). Nodes that send a topic are called **Publishers**, and Nodes that recieve a topic are called **Subscribers**. These terms may be used to describe the arch in the given block diagram below
 
+![System Architecture Diagram](./assets/InitialSWArchitecture.png)
 
 ### Input Stages
 
@@ -37,7 +37,7 @@ The computer vision core is the big block that deals with any "vision" related t
 - Lane Keep Assist
 
 These three things will be implemented as a mix of traditional image processing via openCV and a small YOLO model. Each of these will be their own nodes within  
-this big one. Traffic Light and Lane Keep Assisst can be implemented via traditional image processing. Traffic sign detection will use a YOLOv8 Model that hopefully wont turn the Pi into a hot-plate.
+this big one. Traffic Light and Lane Keep Assisst can be implemented via traditional image processing. Traffic sign detection will use a tiny YOLOv8 Model that hopefully wont turn the Pi into a hot-plate.
 
 Sources for later:
 
