@@ -20,7 +20,7 @@
 
 ---
 
-# Test, Validation & Safety Lead Review
+### Test, Validation & Safety Lead Review
 - Connect what you're doing with what's written in your designated sprint task assignment. Expand on why each task is important and how it contributes to the overall project and each sprint section. 
 
 
