@@ -5,9 +5,13 @@
 We chose to do the ECE Pi-Car Project (2025-26) Below are the group members and roles
 
 **Arnav** - Software & Autonomy
+
 **Addy** - Controls & Motion
+
 **Cristian** - Hardware & Embedded Systems
+
 **Rafi** - Systems Integration
+
 **Harjevan** - Testing, Validation & Safety
 
  
