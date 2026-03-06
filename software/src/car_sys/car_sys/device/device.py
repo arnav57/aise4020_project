@@ -26,48 +26,52 @@ class BaseDevice(Node, ABC):
         
         # init parnet
         super().__init__(node_name)
-        
         self.device_type = device_type
-
-        # setup better logging (less verbose)
-        self._setup_logger(node_name=node_name, device_type=device_type)
         
         # echo a startup message
-        self.get_logger().info(f"Starting Node: {node_name}")
+        self.get_logger().info(f"starting node: {node_name}")
         
         # declaration of ros parameters. This can be changed easily later if needed
         self.declare_parameter('update_rate', 10.0)
         
         # create is_active field
-        self.is_active    = self._initialize()
-        if not self.is_active:
-            self.get_logger().error("Initialization Failed. This node will not spin")
+        self.is_active       = False
+        self._attempted_init = False
 
         # create the timer for the device's loop
         timer_period = 1.0 / self.get_parameter('update_rate').value
-        self.loop_timer = self.create_timer(timer_period, self._loop)
+        self.loop_timer = self.create_timer(timer_period, self._internal_callback)
         self.update_rate = self.get_parameter('update_rate').value
         
-        self.get_logger().info(f"Node Initialized, Publish & Loop rate set to {self.update_rate} Hz")
+        self.get_logger().info(f"node created, publish & loop rate set to {self.update_rate} Hz")
+        self.get_logger().info(f"my ros-name is: '{self.get_fully_qualified_name()}'")
 
-    ###############################################
-    ####             CUSTOM LOGGING             ###
-    ###############################################
+        # connect the guaranteed shutdown callback to the internal func
+        self._context.on_shutdown(self._internal_shutdown_callback)
 
-    def _setup_logger(self, node_name: str, device_type: DeviceType):
+    def _internal_callback(self):
         """
-        Internal method to change the shitty default ROS2 Logger
+        Private method that handles the FSM logic in here. We only run _initialize after the node is fully up and running
         """
-        _logger_name = f"{device_type}:{node_name}"
-        self._custom_logger = rclpy.logging.get_logger(_logger_name)
+        if not self._attempted_init:
+            self.get_logger().info("attempting to initialize...")
+            self.is_active = self._initialize()
+            self._attempted_init = True
 
-    @property
-    def get_logger(self):
+            if not self.is_active:
+                self.get_logger().error("initialization failed...")
+            else:
+                self.get_logger().info("initialized successfully!")
+
+        if self.is_active:
+            self._loop()
+
+    def _internal_shutdown_callback(self):
         """
-        Overrides the get_logger method from within this class to return the
-        custom logger we have instead of the default one from ROS2
+        We need this because ROS2 guarantees this guy will run on shutdown!
         """
-        return lambda: self._custom_logger
+        self._shutdown()
+
 
     ###############################################
     ####            OVERRIDE METHODS            ###

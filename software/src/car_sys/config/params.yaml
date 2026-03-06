@@ -1,0 +1,5 @@
+car_lcd:
+  ros__parameters:
+    update_rate: 2.0
+    address: 0x27
+    i2c_bus: 1
