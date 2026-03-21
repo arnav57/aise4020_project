@@ -1,38 +1,67 @@
+"""
+full.launch.py — launches the complete AISE 4020 car stack.
+
+Node startup order doesn't strictly matter in ROS2 (all use topics),
+but grouping them by tier makes the intent clear.
+"""
+
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
+
 def generate_launch_description():
     return LaunchDescription([
-        # 1. The Hardware Interface (The Muscles)
-        Node(
-            package='custom_car',
-            executable='drive_node',
-            name='drive_node',
-            output='screen'
-        ),
-        
-        # 2. The Vision Pipeline (The Eyes)
+
+        # --- Sensing tier ---
         Node(
             package='custom_car',
             executable='vision_node',
             name='vision_node',
-            output='screen'
+            output='screen',
         ),
-        
-        # 3. The Web Interface (The Cockpit)
         Node(
             package='custom_car',
-            executable='web_node',
-            name='web_node',
-            output='screen'
+            executable='lidar_node',
+            name='lidar_node',
+            output='screen',
         ),
 
-        # 4. PID Node (steering control)
-
+        # --- Processing tier ---
         Node(
             package='custom_car',
             executable='pid_node',
             name='pid_node',
-            output='screen'
+            output='screen',
+            parameters=[{
+                'kp':    0.005,
+                'ki':    0.000,
+                'kd':    0.050,
+                'k_cam': 0.0075,
+                'speed': 0.15,
+            }],
+        ),
+
+        # --- Arbitration ---
+        Node(
+            package='custom_car',
+            executable='arbiter_node',
+            name='arbiter_node',
+            output='screen',
+        ),
+
+        # --- Output tier ---
+        Node(
+            package='custom_car',
+            executable='drive_node',
+            name='drive_node',
+            output='screen',
+        ),
+
+        # --- UI ---
+        Node(
+            package='custom_car',
+            executable='web_node',
+            name='web_node',
+            output='screen',
         ),
     ])

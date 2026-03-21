@@ -24,12 +24,12 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            # format: 'command_name = package_folder.file_name:main_function'
-            'drive_node  = custom_car.drive_node:main',
-            'vision_node = custom_car.vision_node:main',
-            'web_node    = custom_car.web_node:main',
-            'pid_node    = custom_car.pid_node:main',
-            'yolo_node   = custom_car.yolo_node:main',
+            'drive_node   = custom_car.nodes.drive_node:main',
+            'lidar_node   = custom_car.nodes.lidar_node:main',
+            'vision_node  = custom_car.nodes.vision_node:main',
+            'pid_node     = custom_car.nodes.pid_node:main',
+            'arbiter_node = custom_car.nodes.arbiter_node:main',
+            'web_node     = custom_car.nodes.web_node:main',
         ],
     },
 )
