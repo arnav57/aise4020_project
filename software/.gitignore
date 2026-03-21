@@ -25,6 +25,8 @@ compile_commands.json
 # ROS 2 specific
 *.dox
 *.wikidoc
+*.pt
+core
 
 # IDEs
 .vscode/
