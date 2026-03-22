@@ -37,7 +37,7 @@ from typing import Optional
 import cv2
 import uvicorn
 from cv_bridge import CvBridge
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Body
 from fastapi.responses import HTMLResponse, StreamingResponse
 
 import rclpy
@@ -92,18 +92,19 @@ class WebNode(Node):
 
         # --- Publishers ---
         self._drive_pub   = self.create_publisher(Twist,  '/cmd_vel_manual',   10)
-        self._servo_pub   = self.create_publisher(Int32,  '/servo_cmd',        10)
-        self._beep_pub    = self.create_publisher(UInt16, '/beep_cmd',         10)
+        self._servo_pub   = self.create_publisher(Int32,  '/servo_s1',        10)
+        self._beep_pub    = self.create_publisher(UInt16, '/beep',         10)
         self._thresh_pub  = self.create_publisher(Int32,  '/vision/threshold', 10)
         self._enable_pub  = self.create_publisher(Bool,   '/lane_keep/enable', 10)
         self._lane_pub    = self.create_publisher(String, '/lane_cmd',         10)
+        self._vision_param_pub = self.create_publisher(String, '/vision/params', 10)
 
         # --- Subscribers ---
         self.create_subscription(Image,  '/camera/debug_frame', self._frame_cb,   10)
         self.create_subscription(UInt16, '/battery',            self._battery_cb, 10)
         self.create_subscription(Int32,  '/lane_error',         self._error_cb,   10)
 
-        self.get_logger().info('Web node online — dashboard at http://0.0.0.0:5000')
+        self.get_logger().info('Web node online, dashboards at port 5000')
 
     # ------------------------------------------------------------------
     # ROS callbacks — write into shared Telemetry
@@ -114,6 +115,7 @@ class WebNode(Node):
             frame = self._bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
             _, buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
             Telemetry.set_frame(buf.tobytes())
+            #self.get_logger().info("Frame Received")
         except Exception as e:
             self.get_logger().warning(f'Frame encode error: {e}')
 
@@ -128,6 +130,12 @@ class WebNode(Node):
     # ------------------------------------------------------------------
     # Command helpers (called from FastAPI handlers)
     # ------------------------------------------------------------------
+
+    def publish_vision_param(self, name: str, value: int) -> None:
+        import json
+        msg = String()
+        msg.data = json.dumps({'name': name, 'value': value})
+        self._vision_param_pub.publish(msg)
 
     def publish_drive(self, linear: float, angular: float) -> None:
         t = Twist()
@@ -190,11 +198,9 @@ class WebNode(Node):
 app     = FastAPI()
 ros_node: Optional[WebNode] = None   # set before uvicorn starts
 
-
 @app.get('/', response_class=HTMLResponse)
 async def dashboard():
     return _DASHBOARD_HTML
-
 
 @app.get('/video_feed')
 async def video_feed():
@@ -207,61 +213,43 @@ async def video_feed():
     return StreamingResponse(frames(),
                              media_type='multipart/x-mixed-replace; boundary=frame')
 
-
-@app.websocket('/ws/telemetry')
-async def telemetry_ws(ws: WebSocket):
-    await ws.accept()
-    try:
-        while True:
-            await ws.send_text(json.dumps(Telemetry.snapshot()))
-            await asyncio.sleep(0.1)
-    except WebSocketDisconnect:
-        pass
-
-
 @app.post('/api/drive')
-async def api_drive(body: dict):
+async def api_drive(body: dict = Body(...)):
     linear  = float(body.get('linear',  0.0))
     angular = float(body.get('angular', 0.0))
     ros_node.publish_drive(linear, angular)
     return {'ok': True}
 
-
 @app.post('/api/pan')
-async def api_pan(body: dict):
+async def api_pan(body: dict = Body(...)):
     ros_node.publish_pan(int(body.get('angle', 0)))
     return {'ok': True}
 
-
 @app.post('/api/beep')
-async def api_beep(body: dict):
+async def api_beep(body: dict = Body(...)):
     ros_node.publish_beep(int(body.get('duration', 100)))
     return {'ok': True}
 
-
 @app.post('/api/threshold')
-async def api_threshold(body: dict):
+async def api_threshold(body: dict = Body(...)):
     ros_node.publish_threshold(int(body.get('value', 80)))
     return {'ok': True}
 
-
 @app.post('/api/autopilot')
-async def api_autopilot(body: dict):
+async def api_autopilot(body: dict = Body(...)):
     ros_node.publish_enable(bool(body.get('enabled', False)))
     return {'ok': True}
 
-
 @app.post('/api/lane')
-async def api_lane(body: dict):
+async def api_lane(body: dict = Body(...)):
     direction = body.get('direction', '')
     if direction not in ('left', 'right'):
         return {'ok': False, 'error': 'direction must be left or right'}
     ros_node.publish_lane_cmd(direction)
     return {'ok': True}
 
-
 @app.post('/api/pid')
-async def api_pid(body: dict):
+async def api_pid(body: dict = Body(...)):
     name  = body.get('name')
     value = body.get('value')
     if name not in ('kp', 'ki', 'kd', 'speed') or value is None:
@@ -269,12 +257,15 @@ async def api_pid(body: dict):
     await ros_node.set_pid_param(name, float(value))
     return {'ok': True}
 
-
-@app.get('/api/pid')
-async def api_get_pid():
-    params = await ros_node.get_pid_params()
-    return params or {'error': 'timeout'}
-
+@app.post('/api/vision_param')
+async def api_vision_param(body: dict = Body(...)):
+    name  = body.get('name')
+    value = body.get('value')
+    valid = ('adaptive_block', 'adaptive_c', 'peak_min_height', 'flicker_limit')
+    if name not in valid or value is None:
+        return {'ok': False, 'error': f'unknown param {name}'}
+    ros_node.publish_vision_param(name, int(value))
+    return {'ok': True}
 
 # ---------------------------------------------------------------------------
 # Minimal dashboard HTML
@@ -290,6 +281,7 @@ _DASHBOARD_HTML = """
     button { padding:8px 16px; margin:4px; cursor:pointer; }
     input[type=range] { width:200px; }
     #feed { border:2px solid #333; width:500px; }
+    label { display:inline-block; width:120px; text-align:right; margin-right:8px; }
   </style>
 </head>
 <body>
@@ -300,19 +292,46 @@ _DASHBOARD_HTML = """
   <br><br>
 
   <button onclick="post('/api/autopilot', {enabled:true})">Engage autopilot</button>
-  <button onclick="post('/api/autopilot', {enabled:false})">Disengage</button>
+  <button onclick="post('/api/autopilot', {enabled:false}); post('/api/drive', {linear:0, angular:0})">Disengage</button>
   <button onclick="post('/api/beep', {duration:200})">Beep</button>
   <br><br>
 
-  Pan: <input type="range" min="-90" max="90" value="0"
+  <label>Speed:</label>
+  <input type="range" min="0" max="100" value="30" oninput="speed=this.value/100; document.getElementById('speed_val').textContent=this.value/100">
+  <span id="speed_val">0.30</span> m/s<br>
+
+  <label>Pan:</label>
+  <input type="range" min="-90" max="90" value="0"
         oninput="post('/api/pan', {angle:+this.value})"><br>
-  Threshold: <input type="range" min="0" max="255" value="80"
-             oninput="post('/api/threshold', {value:+this.value})"><br><br>
+
+  <label>Adapt block:</label>
+  <input type="range" min="3" max="81" value="31" step="2"
+         oninput="this.value%2==0&&this.value++; document.getElementById('block_val').textContent=this.value; post('/api/vision_param', {name:'adaptive_block', value:+this.value})">
+  <span id="block_val">31</span><br>
+
+  <label>Adapt C:</label>
+  <input type="range" min="1" max="30" value="8"
+         oninput="document.getElementById('c_val').textContent=this.value; post('/api/vision_param', {name:'adaptive_c', value:+this.value})">
+  <span id="c_val">8</span><br>
+
+  <label>Min height:</label>
+  <input type="range" min="100" max="5000" value="1000" step="100"
+         oninput="document.getElementById('height_val').textContent=this.value; post('/api/vision_param', {name:'peak_min_height', value:+this.value})">
+  <span id="height_val">1000</span><br>
+
+  <label>Flicker limit:</label>
+  <input type="range" min="10" max="300" value="100"
+         oninput="document.getElementById('flicker_val').textContent=this.value; post('/api/vision_param', {name:'flicker_limit', value:+this.value})">
+  <span id="flicker_val">100</span><br>
 
   <button onclick="post('/api/lane', {direction:'left'})">Lane left</button>
   <button onclick="post('/api/lane', {direction:'right'})">Lane right</button>
+  <br><br>
+  <p style="color:#888">Drive with WASD</p>
 
   <script>
+    let speed = 0.30;
+
     const ws = new WebSocket(`ws://${location.host}/ws/telemetry`);
     ws.onmessage = e => {
       const d = JSON.parse(e.data);
@@ -326,14 +345,22 @@ _DASHBOARD_HTML = """
     }
 
     let held = new Set();
-    const KEY_MAP = {w:[0.3,0], s:[-0.3,0], a:[0,0.8], d:[0,-0.8]};
     function sendDrive() {
       let lin=0, ang=0;
-      for (const k of held) { if(KEY_MAP[k]){lin+=KEY_MAP[k][0]; ang+=KEY_MAP[k][1];} }
+      if(held.has('w')) lin += speed;
+      if(held.has('s')) lin -= speed;
+      if(held.has('a')) ang += 0.8;
+      if(held.has('d')) ang -= 0.8;
       post('/api/drive', {linear:lin, angular:ang});
     }
-    document.addEventListener('keydown', e => { if(KEY_MAP[e.key]&&!held.has(e.key)){held.add(e.key);sendDrive();} });
-    document.addEventListener('keyup',   e => { if(held.delete(e.key)) sendDrive(); });
+    document.addEventListener('keydown', e => {
+      const k = e.key.toLowerCase();
+      if(['w','a','s','d'].includes(k) && !held.has(k)){ held.add(k); sendDrive(); }
+    });
+    document.addEventListener('keyup', e => {
+      const k = e.key.toLowerCase();
+      if(held.delete(k)) sendDrive();
+    });
   </script>
 </body>
 </html>

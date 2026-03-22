@@ -31,7 +31,7 @@ from rcl_interfaces.msg import SetParametersResult
 from std_msgs.msg import Int32, Bool
 from geometry_msgs.msg import Twist
 
-from custom_car.lib.pid import PIDConfig, PIDController
+from smart_car.lib.pid import PIDConfig, PIDController
 
 
 class PIDNode(Node):
@@ -39,9 +39,9 @@ class PIDNode(Node):
         super().__init__('pid_node')
 
         # --- Parameters ---
-        self.declare_parameter('kp',    0.005)
+        self.declare_parameter('kp',    0.010)
         self.declare_parameter('ki',    0.000)
-        self.declare_parameter('kd',    0.050)
+        self.declare_parameter('kd',    0.100)
         self.declare_parameter('k_cam', 0.0075)
         self.declare_parameter('speed', 0.15)
         self.add_on_set_parameters_callback(self._param_cb)

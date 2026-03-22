@@ -36,8 +36,10 @@ from rcl_interfaces.msg import SetParametersResult
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int32, String
+import json
 
-from custom_car.lib.lane_detect import LaneConfig, build_debug_overlay, detect_lane
+from smart_car.lib.lane_detect import LaneConfig, build_debug_overlay, detect_lane
+from smart_car.lib.arduino import ArduinoInterface
 
 CAMERA_WIDTH  = 640
 CAMERA_HEIGHT = 480
@@ -49,11 +51,15 @@ class VisionNode(Node):
         super().__init__('vision_node')
 
         # --- Parameters ---
-        self.declare_parameter('threshold',      80)
         self.declare_parameter('screen_center',  320)
         self.declare_parameter('cam_shift_deg',  35)
         self.declare_parameter('cam_shift_sec',  1.0)
         self.declare_parameter('lane_shift_px',  550)
+
+        self.declare_parameter('adaptive_block',  31)
+        self.declare_parameter('adaptive_c',       8)
+        self.declare_parameter('peak_min_height', 1000)
+        self.declare_parameter('flicker_limit',   100)
         self.add_on_set_parameters_callback(self._param_cb)
 
         # --- CV bridge + camera ---
@@ -67,8 +73,8 @@ class VisionNode(Node):
         self._servo_pub = self.create_publisher(Int32,  '/servo_cmd',          10)
 
         # --- Subscriptions ---
-        self.create_subscription(Int32,  '/vision/threshold', self._threshold_cb, 10)
         self.create_subscription(String, '/lane_cmd',         self._lane_cmd_cb,  10)
+        self.create_subscription(String, '/vision/params', self._vision_param_cb, 10)
 
         # --- Lane tracking state ---
         self._last_lane_x: int   = CAMERA_WIDTH // 2
@@ -132,6 +138,7 @@ class VisionNode(Node):
             self._pending_shift_px = 0
             self.get_logger().info('Gaze: camera re-centred.')
 
+
     def _lane_cmd_cb(self, msg: String) -> None:
         direction   = msg.data.lower()
         shift_deg   = self.get_parameter('cam_shift_deg').value
@@ -144,6 +151,7 @@ class VisionNode(Node):
         elif direction == 'right':
             pan_angle           = shift_deg
             self._pending_shift_px += shift_px
+
         else:
             self.get_logger().warning(f'Unknown lane_cmd: "{msg.data}"')
             return
@@ -152,6 +160,15 @@ class VisionNode(Node):
         self._pan_end  = time.time() + shift_sec
         self._panning  = True
         self.get_logger().info(f'Gaze: panning {direction} ({pan_angle} deg).')
+
+    def _vision_param_cb(self, msg: String) -> None:
+        try:
+            data = json.loads(msg.data)
+            self.set_parameters([
+                rclpy.parameter.Parameter(data['name'], value=int(data['value']))
+            ])
+        except Exception as e:
+            self.get_logger().warning(f'Vision param update failed: {e}')
 
     # ------------------------------------------------------------------
     # Publishing helpers
@@ -182,13 +199,11 @@ class VisionNode(Node):
 
     def _build_lane_config(self) -> LaneConfig:
         return LaneConfig(
-            threshold=self.get_parameter('threshold').value,
+            adaptive_block=self.get_parameter('adaptive_block').value,
+            adaptive_c=self.get_parameter('adaptive_c').value,
+            peak_min_height=self.get_parameter('peak_min_height').value,
+            flicker_limit=self.get_parameter('flicker_limit').value,
         )
-
-    def _threshold_cb(self, msg: Int32) -> None:
-        self.set_parameters([
-            rclpy.parameter.Parameter('threshold', value=msg.data)
-        ])
 
     def _param_cb(self, params) -> SetParametersResult:
         for p in params:

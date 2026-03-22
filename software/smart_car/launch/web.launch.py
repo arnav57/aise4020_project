@@ -14,13 +14,13 @@ def generate_launch_description():
 
         # --- Sensing tier ---
         Node(
-            package='custom_car',
+            package='smart_car',
             executable='vision_node',
             name='vision_node',
             output='screen',
         ),
         Node(
-            package='custom_car',
+            package='smart_car',
             executable='lidar_node',
             name='lidar_node',
             output='screen',
@@ -28,7 +28,7 @@ def generate_launch_description():
 
         # --- Processing tier ---
         Node(
-            package='custom_car',
+            package='smart_car',
             executable='pid_node',
             name='pid_node',
             output='screen',
@@ -43,7 +43,7 @@ def generate_launch_description():
 
         # --- Arbitration ---
         Node(
-            package='custom_car',
+            package='smart_car',
             executable='arbiter_node',
             name='arbiter_node',
             output='screen',
@@ -51,15 +51,22 @@ def generate_launch_description():
 
         # --- Output tier ---
         Node(
-            package='custom_car',
+            package='smart_car',
             executable='drive_node',
             name='drive_node',
             output='screen',
         ),
 
+        Node(
+            package='smart_car',
+            executable='arduino_node',
+            name='arduino_node',
+            output='screen',
+        ),
+
         # --- UI ---
         Node(
-            package='custom_car',
+            package='smart_car',
             executable='web_node',
             name='web_node',
             output='screen',

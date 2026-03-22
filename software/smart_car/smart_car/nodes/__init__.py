@@ -4,6 +4,7 @@ from .lidar_node    import LidarNode
 from .pid_node      import PIDNode
 from .vision_node   import VisionNode
 from .web_node      import WebNode
+from .arduino_node  import ArduinoNode
 
 # *
 __all__ = [
@@ -13,4 +14,5 @@ __all__ = [
     "PIDNode",
     "VisionNode",
     "WebNode",
+    "ArduinoNode",
 ]

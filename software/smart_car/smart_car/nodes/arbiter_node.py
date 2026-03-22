@@ -27,6 +27,7 @@ import time
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
+from std_msgs.msg import Bool
 
 ESTOP_LATCH_S    = 3.0   # seconds the ESTOP holds after it's triggered
 MANUAL_TIMEOUT_S = 1.0   # seconds of silence before manual mode releases
@@ -35,6 +36,7 @@ MANUAL_TIMEOUT_S = 1.0   # seconds of silence before manual mode releases
 class ArbiterNode(Node):
     def __init__(self) -> None:
         super().__init__('arbiter_node')
+        self._auto_enabled = False
 
         # --- The one true /cmd_vel publisher ---
         self._cmd_pub = self.create_publisher(Twist, '/cmd_vel', 10)
@@ -43,6 +45,7 @@ class ArbiterNode(Node):
         self.create_subscription(Twist, '/cmd_vel_pid',    self._auto_cb,   10)
         self.create_subscription(Twist, '/cmd_vel_manual', self._manual_cb, 10)
         self.create_subscription(Twist, '/cmd_vel_estop',  self._estop_cb,  10)
+        self.create_subscription(Bool,  '/lane_keep/enable', self._auto_enable_cb, 10)
 
         # --- State ---
         self._auto_cmd:   Twist = Twist()
@@ -71,6 +74,9 @@ class ArbiterNode(Node):
         self._estop_until = time.time() + ESTOP_LATCH_S
         self.get_logger().warning('ESTOP received — motors halted.')
 
+    def _auto_enable_cb(self, msg: Bool) -> None:
+        self._auto_enabled = msg.data
+
     # ------------------------------------------------------------------
     # Arbitration loop
     # ------------------------------------------------------------------
@@ -86,7 +92,8 @@ class ArbiterNode(Node):
             self._cmd_pub.publish(self._manual_cmd)   # priority 2: operator
             return
 
-        self._cmd_pub.publish(self._auto_cmd)   # priority 3: autopilot
+        if self._auto_enabled:
+            self._cmd_pub.publish(self._auto_cmd)   # priority 3: autopilot
 
 
 def main(args=None) -> None:

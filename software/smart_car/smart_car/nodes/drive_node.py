@@ -3,8 +3,6 @@ drive_node — hardware interface and safety watchdog.
 
 Responsibilities:
   - Translate /cmd_vel and /servo_cmd into hardware publish calls
-  - Run an active watchdog: if no /cmd_vel arrives within WATCHDOG_TIMEOUT_S,
-    publish a zero-velocity stop command automatically
   - Report battery state and log low-battery warnings
 
 Topic interface:
@@ -25,8 +23,8 @@ from rclpy.node import Node
 from std_msgs.msg import Int32, UInt16
 from geometry_msgs.msg import Twist
 
-WATCHDOG_TIMEOUT_S = 0.5   # seconds before auto-stop triggers
-LOW_BATTERY_PCT    = 20    # percentage threshold for warning logs
+WATCHDOG_TIMEOUT_S = 2000   # seconds before auto-stop triggers
+LOW_BATTERY_PCT    = 67    # percentage threshold for warning logs
 
 
 class DriveNode(Node):
@@ -34,30 +32,20 @@ class DriveNode(Node):
         super().__init__('drive_node')
 
         # --- Publishers (hardware topics) ---
-        self._vel_pub  = self.create_publisher(Twist,  '/cmd_vel',   10)
         self._pan_pub  = self.create_publisher(Int32,  '/servo_s1',  10)
         self._beep_pub = self.create_publisher(UInt16, '/beep',      10)
 
         # --- Subscribers ---
-        self.create_subscription(Twist,  '/cmd_vel',   self._cmd_vel_cb,  10)
         self.create_subscription(Int32,  '/servo_cmd', self._servo_cb,    10)
         self.create_subscription(UInt16, '/beep_cmd',  self._beep_cb,     10)
         self.create_subscription(UInt16, '/battery',   self._battery_cb,  10)
 
-        # --- Watchdog ---
-        self._last_cmd_time = self.get_clock().now()
-        self._watchdog = self.create_timer(0.1, self._watchdog_tick)
 
-        self.get_logger().info('Drive node online — watchdog active.')
+        self.get_logger().info('Drive node online')
 
     # ------------------------------------------------------------------
     # Subscription callbacks
     # ------------------------------------------------------------------
-
-    def _cmd_vel_cb(self, msg: Twist) -> None:
-        """Forward velocity command to hardware and pet the watchdog."""
-        self._last_cmd_time = self.get_clock().now()
-        self._vel_pub.publish(msg)
 
     def _servo_cb(self, msg: Int32) -> None:
         """Accept a hardware-frame angle (-90..90) and forward it."""
@@ -72,19 +60,6 @@ class DriveNode(Node):
             self.get_logger().warning(
                 f'Low battery: {msg.data}%'
             )
-
-    # ------------------------------------------------------------------
-    # Watchdog
-    # ------------------------------------------------------------------
-
-    def _watchdog_tick(self) -> None:
-        """Publish a stop command if no velocity command has arrived recently."""
-        elapsed = (
-            self.get_clock().now() - self._last_cmd_time
-        ).nanoseconds / 1e9
-
-        if elapsed > WATCHDOG_TIMEOUT_S:
-            self._vel_pub.publish(Twist())
 
 
 def main(args=None) -> None:

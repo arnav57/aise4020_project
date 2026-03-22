@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = 'custom_car'
+package_name = 'smart_car'
 
 setup(
     name=package_name,
@@ -24,12 +24,13 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'drive_node   = custom_car.nodes.drive_node:main',
-            'lidar_node   = custom_car.nodes.lidar_node:main',
-            'vision_node  = custom_car.nodes.vision_node:main',
-            'pid_node     = custom_car.nodes.pid_node:main',
-            'arbiter_node = custom_car.nodes.arbiter_node:main',
-            'web_node     = custom_car.nodes.web_node:main',
+            'drive_node   = smart_car.nodes.drive_node:main',
+            'lidar_node   = smart_car.nodes.lidar_node:main',
+            'vision_node  = smart_car.nodes.vision_node:main',
+            'pid_node     = smart_car.nodes.pid_node:main',
+            'arbiter_node = smart_car.nodes.arbiter_node:main',
+            'web_node     = smart_car.nodes.web_node:main',
+            'arduino_node = smart_car.nodes.arduino_node:main',
         ],
     },
 )
