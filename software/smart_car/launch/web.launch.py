@@ -13,6 +13,7 @@ def generate_launch_description():
     return LaunchDescription([
 
         # --- Sensing tier ---
+
         Node(
             package='smart_car',
             executable='vision_node',
@@ -27,6 +28,7 @@ def generate_launch_description():
         ),
 
         # --- Processing tier ---
+
         Node(
             package='smart_car',
             executable='pid_node',
@@ -41,7 +43,15 @@ def generate_launch_description():
             }],
         ),
 
+        Node(
+            package='smart_car',
+            executable='aruco_node',
+            name='aruco_node',
+            output='screen'
+        ),
+
         # --- Arbitration ---
+
         Node(
             package='smart_car',
             executable='arbiter_node',
@@ -50,6 +60,7 @@ def generate_launch_description():
         ),
 
         # --- Output tier ---
+
         Node(
             package='smart_car',
             executable='drive_node',
@@ -65,6 +76,7 @@ def generate_launch_description():
         ),
 
         # --- UI ---
+        
         Node(
             package='smart_car',
             executable='web_node',

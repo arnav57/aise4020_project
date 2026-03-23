@@ -31,6 +31,7 @@ setup(
             'arbiter_node = smart_car.nodes.arbiter_node:main',
             'web_node     = smart_car.nodes.web_node:main',
             'arduino_node = smart_car.nodes.arduino_node:main',
+            'aruco_node   = smart_car.nodes.aruco_node:main'
         ],
     },
 )
