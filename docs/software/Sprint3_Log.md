@@ -1,6 +1,6 @@
 # Software & Autonomy (Sprint 3)
 
-This sprint was spent actually implementing things on the real car. The things I got working are listed below. Note that the setup assumes a single piece of black tape on a background with enough contrast between itself and the tape what will be used for the demo
+This sprint was spent actually implementing things on the real car. The things I got working are listed below. Note that the setup assumes that a single piece of black tape on a background with enough contrast between itself and the tape, is what will be used for the in-person demo
 
 1. Lane following
 2. Lane switching
