@@ -45,6 +45,8 @@ class ArucoDetectorNode(Node):
 
         self.get_logger().info(f'Aruco node online')
 
+    # --- Sub Callbacks ---
+
     def image_callback(self, msg):
         try:
             frame = self.bridge.imgmsg_to_cv2(
@@ -56,41 +58,51 @@ class ArucoDetectorNode(Node):
         corners, ids, _ = self.detector.detectMarkers(frame)
 
         if ids is None:
+            # clear module state, so we can detect next sign
+            self._prev_id           = None
+            self._prev_instruction  = None
+
+            # also log it if we transition to None
+            if self._prev_id is not None
+            self.get_logger().info("Instruction Memory Cleared")
+            
             return
 
-        for marker_id in ids.flatten():
-            marker_id = int(marker_id)
+        # only consider the FIRST marker we find here, by deisgn we dont care about multiple markers
+        marker_id = int(ids[0][0])
+
+        # check if the id is within our mapping, then we handle the instruction, easy to move the constrain here.
+        if marker_id in MARKER_MAP:
             instruction = MARKER_MAP.get(marker_id, "UNKNOWN")
             self.handle_instruction(instruction, marker_id)
+        else:
+            pass # we cba about the other ones
+
+    # --- Publishing and Handling Instrucitns ---
 
     def _publish(self, instruction, marker_id):
-        # only publish the msg if the instruction or marker id's change
+        # only publish the msg if the marker id's change
+        # since instruction is derived from ID it doesnt make sense to add the instruction check
+
         msg_valid_int = False
 
-        # constrain marker id to be inside 0,1,2,3
-        if marker_id not in range(0,4):
-            return False
-
         if marker_id != self._prev_id:
-            id_msg = Int32()
-            id_msg.data = marker_id
+            # assmelbe data
+            id_msg          = Int32()
+            instr_msg       = String()
+            id_msg.data     = marker_id
+            instr_msg.data  = instruction
+
             self.pub_id.publish(id_msg)
-            msg_valid_int = True
-
-        if instruction != self._prev_instruction:
-            instr_msg = String()
-            instr_msg.data = instruction
             self.pub_type.publish(instr_msg)
+
             msg_valid_int = True
 
-        # update states at the end
+        # update states at the end + return the validiity
         self._prev_id          = marker_id
         self._prev_instruction = instruction
 
         return msg_valid_int
-
-
-
 
     def handle_instruction(self, instruction, marker_id):
 
@@ -115,6 +127,8 @@ class ArucoDetectorNode(Node):
 
             elif instruction == "SPEED_100":
                 self.get_logger().info('Instruction: SPEED_100')
+
+        # also log if the memory is clear
 
 
 def main(args=None):
