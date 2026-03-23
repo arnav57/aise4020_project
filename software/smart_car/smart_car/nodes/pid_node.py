@@ -28,7 +28,7 @@ Parameters:
 import rclpy
 from rclpy.node import Node
 from rcl_interfaces.msg import SetParametersResult
-from std_msgs.msg import Int32, Bool
+from std_msgs.msg import Int32, Bool, String
 from geometry_msgs.msg import Twist
 
 from smart_car.lib.pid import PIDConfig, PIDController
@@ -53,18 +53,30 @@ class PIDNode(Node):
         self._enabled      = False
         self._camera_angle = 0
         self._last_time    = self.get_clock().now()
+        self._speed = self.get_parameter('speed').value
 
         # --- Pub / Sub ---
         self._cmd_pub = self.create_publisher(Twist, '/cmd_vel_pid', 10)
         self.create_subscription(Int32, '/lane_error',       self._error_cb,  10)
         self.create_subscription(Bool,  '/lane_keep/enable', self._enable_cb, 10)
         self.create_subscription(Int32, '/servo_cmd',        self._servo_cb,  10)
+        self.create_subscription(String,'/vision/marker_type', self._marker_cb, 10)
 
         self.get_logger().info('PID node online.')
 
     # ------------------------------------------------------------------
     # Subscription callbacks
     # ------------------------------------------------------------------
+
+    def _marker_cb(self, msg: String) -> None:
+        if msg.data == "SPEED_60":
+            self._speed = self.get_parameter('speed').value * 0.6
+        elif msg.data == "SPEED_100":
+            self._speed = self.get_parameter('speed').value
+
+        self.get_logger().info(f"speed is now: {self._speed/self.get_parameter('speed').value *100}%")
+
+
 
     def _enable_cb(self, msg: Bool) -> None:
         self._enabled = msg.data
@@ -92,7 +104,7 @@ class PIDNode(Node):
         error    = float(msg.data)
         steering = self._pid.compute(error, dt)
 
-        # Feedforward: camera already looking in a direction → pre-steer that way
+        # Feedforward: camera already looking in a direction pre-steer that way
         k_cam    = self.get_parameter('k_cam').value
         steering += self._camera_angle * k_cam
 
@@ -100,7 +112,7 @@ class PIDNode(Node):
         steering = max(-1.2, min(1.2, steering))
 
         twist = Twist()
-        twist.linear.x  = self.get_parameter('speed').value
+        twist.linear.x  = self._speed
         twist.angular.z = -steering   # negative: positive error = right = steer left
         self._cmd_pub.publish(twist)
 

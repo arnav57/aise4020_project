@@ -2,6 +2,7 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image
 from std_msgs.msg import Int32, String
+from geometry_msgs.msg import Twist
 from cv_bridge import CvBridge
 import cv2
 import cv2.aruco as aruco
@@ -9,9 +10,10 @@ import time
 
 MARKER_MAP = {
     0: "STOP",
-    1: "SPEED_30",
-    2: "GIVE_WAY",
-    3: "SPEED_100"
+    1: "SPEED_60",
+    2: "SPEED_100",
+    3: "TURN_LEFT",
+    4: "TURN_RIGHT",
 }
 
 class ArucoDetectorNode(Node):
@@ -45,6 +47,8 @@ class ArucoDetectorNode(Node):
         self.pub_id = self.create_publisher(Int32, '/vision/marker_id', 10)
         self.pub_type = self.create_publisher(String, '/vision/marker_type', 10)
 
+        # need a pub for turn left/right
+        self.turn_pub = self.create_publisher(String, '/lane_cmd', 10)
 
         self.get_logger().info(f'Aruco node online')
 
@@ -117,20 +121,23 @@ class ArucoDetectorNode(Node):
         # only log if the message is valid (new value on id or instruction)
 
         if valid_publish:
-            if instruction == "STOP":
-                # Option 1 — runs when marker ID 0 is detected
-                self.get_logger().info('Instruction: STOP')
+            ## NOTE:
+            # STOP IS HANDLED INSIDE arbiter_node.py
+            # SPEED COMMANDS ARE HANDLED IN pid_node.py
+            # TURN COMMANDS ARE HANDLED HERE!! we just publish to the /lane_cmd topic
+            # we just log the instruction here to locally 'handle' it
 
-            elif instruction == "SPEED_30":
-                # Option 2 — runs when marker ID 1 is detected
-                self.get_logger().info('Instruction: SPEED_30')
+            self.get_logger().info(f"Instruction: '{instruction}'")
 
-            elif instruction == "GIVE_WAY":
-                # Option 3 — runs when marker ID 2 is detected
-                self.get_logger().info('Instruction: GIVE_WAY')
+            if instruction == "TURN_LEFT":
+                s = String()
+                s.data = "left"
+                self.turn_pub.publish(s)
+            elif instruction == "TURN_RIGHT":
+                s = String()
+                s.data = "right"
+                self.turn_pub.publish(s)
 
-            elif instruction == "SPEED_100":
-                self.get_logger().info('Instruction: SPEED_100')
 
 
 def main(args=None):

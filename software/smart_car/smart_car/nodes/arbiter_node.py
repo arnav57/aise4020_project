@@ -16,7 +16,7 @@ Topic interface:
   Subscriptions:
     /cmd_vel_pid     (geometry_msgs/Twist) — from pid_node
     /cmd_vel_manual  (geometry_msgs/Twist) — from web_node
-    /cmd_vel_estop   (geometry_msgs/Twist) — from yolo_node
+    /vision/marker_type   (std_msgs/String) — from aruco_node, triggers a stop
 
   Publications:
     /cmd_vel         (geometry_msgs/Twist) — to drive_node (hardware)
@@ -27,7 +27,7 @@ import time
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 
 ESTOP_LATCH_S    = 3.0   # seconds the ESTOP holds after it's triggered
 MANUAL_TIMEOUT_S = 1.0   # seconds of silence before manual mode releases
@@ -44,7 +44,7 @@ class ArbiterNode(Node):
         # --- Command sources ---
         self.create_subscription(Twist, '/cmd_vel_pid',    self._auto_cb,   10)
         self.create_subscription(Twist, '/cmd_vel_manual', self._manual_cb, 10)
-        self.create_subscription(Twist, '/cmd_vel_estop',  self._estop_cb,  10)
+        self.create_subscription(String,'/vision/marker_type',  self._marker_cb,  10)
         self.create_subscription(Bool,  '/lane_keep/enable', self._auto_enable_cb, 10)
 
         # --- State ---
@@ -70,9 +70,10 @@ class ArbiterNode(Node):
         self._manual_cmd  = msg
         self._manual_until = time.time() + MANUAL_TIMEOUT_S
 
-    def _estop_cb(self, msg: Twist) -> None:
-        self._estop_until = time.time() + ESTOP_LATCH_S
-        self.get_logger().warning('ESTOP received — motors halted.')
+    def _marker_cb(self, msg: String) -> None:
+        if msg.data == "STOP":
+            self._estop_until = time.time() + ESTOP_LATCH_S
+            self.get_logger().warning('STOP sign seen, stopping for 3s \#safedriving')
 
     def _auto_enable_cb(self, msg: Bool) -> None:
         self._auto_enabled = msg.data
