@@ -44,9 +44,9 @@ We define ArUco patches as traffic signs, as this would provide the easiest impl
 
 This is just a FastAPI server that shows us the camera feed (raw + lane following debug) lets us tune the image processing algorithm for lane following and lets us enable/disable the self-driving along a predefined track.
 
-## File Reference by Topic
+### File Reference by Topic
 
-### 1. Lane Following
+#### 1. Lane Following
 *Core vision processing and PID steering control.*
 
 - **`software/smart_car/smart_car/nodes/vision_node.py`**: Handles camera capture, calls detection logic, and publishes pixel error.
@@ -54,31 +54,31 @@ This is just a FastAPI server that shows us the camera feed (raw + lane followin
 - **`software/smart_car/smart_car/lib/lane_detect.py`**: Implements Gaussian blur, adaptive thresholding, morphological opening, and peak detection.
 - **`software/smart_car/smart_car/lib/pid.py`**: PID controller implementation.
 
-### 2. Lane Switching
+#### 2. Lane Switching
 *Active gaze control and lane memory manipulation.*
 
 - **`software/smart_car/smart_car/nodes/vision_node.py`**: Implements "Active Gaze" (panning camera and offsetting lane memory).
 - **`software/smart_car/smart_car/nodes/drive_node.py`**: Forwards `/servo_cmd` to physical hardware.
 
-### 3. Brake & Turn Light Control
+#### 3. Brake & Turn Light Control
 *Serial communication between Pi and Arduino.*
 
 - **`software/smart_car/smart_car/nodes/arduino_node.py`**: Monitors `/cmd_vel` for braking and `/lane_cmd` for blinkers.
 - **`software/smart_car/smart_car/lib/arduino.py`**: Low-level serial interface for Arduino commands.
 
-### 4. ArUco "Traffic Sign" Compliance
+#### 4. ArUco "Traffic Sign" Compliance
 *Marker detection and command overrides.*
 
 - **`software/smart_car/smart_car/nodes/aruco_node.py`**: Detects markers and publishes sign types.
 - **`software/smart_car/smart_car/nodes/arbiter_node.py`**: Triggers ESTOP latches for STOP signs.
 - **`software/smart_car/smart_car/nodes/pid_node.py`**: Scales linear velocity based on speed signs.
 
-### 5. Web UI For Control
+#### 5. Web UI For Control
 *Dashboard and live tuning.*
 
 - **`software/smart_car/smart_car/nodes/web_node.py`**: FastAPI server
 
-### 6. ROS2 Launch Points
+#### 6. ROS2 Launch Points
 *What happens when we type `ros2 launch smart_car web.launch.py`*
 - **`software/smart_car/launch/web.launch.py`**: Main launch file for the complete stack.
 - **`software/smart_car/setup.py`**: Entry points for all ROS 2 nodes.
