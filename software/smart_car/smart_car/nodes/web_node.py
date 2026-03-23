@@ -12,6 +12,7 @@ Replaces the old Flask + threading.Thread approach with a proper async setup:
 Topic interface:
   Subscriptions:
     /camera/debug_frame  (sensor_msgs/Image)  — annotated lane feed
+    /camera/raw_frame    (sensor_msgs/Image)  — actual full frame feed
     /battery             (std_msgs/UInt16)    — battery percentage
     /lane_error          (std_msgs/Int32)     — current lane error
 
@@ -75,6 +76,16 @@ class Telemetry:
         with cls.lock:
             return cls.frame_jpg
 
+    @classmethod
+    def set_raw_frame(cls, jpg: bytes) -> None:
+        with cls.lock:
+            cls.raw_frame_jpg = jpg
+
+    @classmethod
+    def get_raw_frame(cls) -> Optional[bytes]:
+        with cls.lock:
+            return cls.raw_frame_jpg
+
 
 # ---------------------------------------------------------------------------
 # ROS2 node
@@ -101,6 +112,7 @@ class WebNode(Node):
 
         # --- Subscribers ---
         self.create_subscription(Image,  '/camera/debug_frame', self._frame_cb,   10)
+        self.create_subscription(Image,  '/camera/raw_frame',   self._raw_frame_cb, 10)
         self.create_subscription(UInt16, '/battery',            self._battery_cb, 10)
         self.create_subscription(Int32,  '/lane_error',         self._error_cb,   10)
 
@@ -118,6 +130,14 @@ class WebNode(Node):
             #self.get_logger().info("Frame Received")
         except Exception as e:
             self.get_logger().warning(f'Frame encode error: {e}')
+
+    def _raw_frame_cb(self, msg: Image) -> None:
+        try:
+            frame = self._bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            _ , buf = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 60])
+            Telemetry.set_raw_frame(buf.tobytes())
+        except Exception as e:
+            self.get_logger().warning(f'Raw frame encode error: {e}')
 
     def _battery_cb(self, msg: UInt16) -> None:
         with Telemetry.lock:
@@ -213,6 +233,17 @@ async def video_feed():
     return StreamingResponse(frames(),
                              media_type='multipart/x-mixed-replace; boundary=frame')
 
+@app.get('/raw_video_feed')
+async def raw_video_feed():
+    async def frames():
+        while True:
+            jpg = Telemetry.get_raw_frame()
+            if jpg:
+                yield b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + jpg + b'\r\n'
+            await asyncio.sleep(0.05)
+    return StreamingResponse(frames(),
+                             media_type='multipart/x-mixed-replace; boundary=frame')
+
 @app.post('/api/drive')
 async def api_drive(body: dict = Body(...)):
     linear  = float(body.get('linear',  0.0))
@@ -280,7 +311,7 @@ _DASHBOARD_HTML = """
     body { background:#111; color:#0f0; font-family:monospace; text-align:center; }
     button { padding:8px 16px; margin:4px; cursor:pointer; }
     input[type=range] { width:200px; }
-    #feed { border:2px solid #333; width:500px; }
+    .feed { border:2px solid #333; width:500px; }
     label { display:inline-block; width:120px; text-align:right; margin-right:8px; }
   </style>
 </head>
@@ -288,7 +319,8 @@ _DASHBOARD_HTML = """
   <h2>4020 Control</h2>
   <div id="telem">Battery: <span id="bat">--</span>% | Error: <span id="err">0</span>px</div>
   <br>
-  <img id="feed" src="/video_feed">
+  <img class="feed" src="/video_feed">
+  <img class="feed" src="/raw_video_feed">
   <br><br>
 
   <button onclick="post('/api/autopilot', {enabled:true})">Engage autopilot</button>
