@@ -5,6 +5,7 @@ from std_msgs.msg import Int32, String
 from cv_bridge import CvBridge
 import cv2
 import cv2.aruco as aruco
+import time
 
 MARKER_MAP = {
     0: "STOP",
@@ -20,6 +21,8 @@ class ArucoDetectorNode(Node):
         # --- states ---
         self._prev_instruction = None  # str
         self._prev_id          = None  # int
+        self._last_seen_time   = 0.0   # time we last saw a sign
+        self._memory_timeout   = 1.0   # timeout till memory of last sign is cleared
 
         # --- aruco thingy setup ---
 
@@ -56,17 +59,18 @@ class ArucoDetectorNode(Node):
             return
 
         corners, ids, _ = self.detector.detectMarkers(frame)
+        #self.get_logger().info(f"IDs: {ids}")
 
         if ids is None:
-            # clear module state, so we can detect next sign
-            self._prev_id           = None
-            self._prev_instruction  = None
-
-            # also log it if we transition to None
-            if self._prev_id is not None
-            self.get_logger().info("Instruction Memory Cleared")
+            # log it if we transition to None
+            if self._prev_id is not None and (time.time() - self._last_seen_time > self._memory_timeout):
+                self.get_logger().info("Instruction Memory Cleared")
+                # clear module state, so we can detect next sign
+                self._prev_id           = None
+                self._prev_instruction  = None
             
             return
+        self._last_seen_time = time.time()
 
         # only consider the FIRST marker we find here, by deisgn we dont care about multiple markers
         marker_id = int(ids[0][0])
@@ -127,8 +131,6 @@ class ArucoDetectorNode(Node):
 
             elif instruction == "SPEED_100":
                 self.get_logger().info('Instruction: SPEED_100')
-
-        # also log if the memory is clear
 
 
 def main(args=None):
