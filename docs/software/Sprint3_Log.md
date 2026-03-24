@@ -54,11 +54,11 @@ All markers are 30×30mm, generated using the **4x4 (50, 100, 250, 1000)** dicti
 
 *Photos of the printed markers used in testing:*
 
-![Marker ID 0 — STOP](software/aruco_markers/ArucoTag0.jpg)
-||![Marker ID 1 — SPEED_60](software/aruco_markers/ArucoTag1.jpg)
-||![Marker ID 2 — SPEED_100](software/aruco_markers/ArucoTag2.jpg)
-||![Marker ID 3 — TURN_LEFT](software/aruco_markers/ArucoTag3.jpg)
-||![Marker ID 4 — TURN_RIGHT](software/aruco_markers/ArucoTag4.jpg)
+![Marker ID 0 — STOP](../../software/aruco_markers/ArucoTag0.jpg)
+![Marker ID 1 — SPEED_60](../../software/aruco_markers/ArucoTag1.jpg)
+![Marker ID 2 — SPEED_100](../../software/aruco_markers/ArucoTag2.jpg)
+![Marker ID 3 — TURN_LEFT](../../software/aruco_markers/ArucoTag3.jpg)
+![Marker ID 4 — TURN_RIGHT](../../software/aruco_markers/ArucoTag4.jpg)
 
 ## Web UI For Control
 
