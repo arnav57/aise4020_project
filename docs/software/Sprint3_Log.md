@@ -54,30 +54,34 @@ All markers are 30×30mm, generated using the **4x4 (50, 100, 250, 1000)** dicti
 
 *Photos of the printed markers used in testing:*
 
-<figure>
-  <img src="../../software/aruco_markers/ArucoTag0.jpg" width="100" alt="Marker ID 0 — STOP"/>
-  <figcaption>Marker ID 0 — STOP</figcaption>
-</figure>
-
-<figure>
-  <img src="../../software/aruco_markers/ArucoTag1.jpg" width="100" alt="Marker ID 1 — SPEED_60"/>
-  <figcaption>Marker ID 1 — SPEED_60</figcaption>
-</figure>
-
-<figure>
-  <img src="../../software/aruco_markers/ArucoTag2.jpg" width="100" alt="Marker ID 2 — SPEED_100"/>
-  <figcaption>Marker ID 2 — SPEED_100</figcaption>
-</figure>
-
-<figure>
-  <img src="../../software/aruco_markers/ArucoTag3.jpg" width="100" alt="Marker ID 3 — TURN_LEFT"/>
-  <figcaption>Marker ID 3 — TURN_LEFT</figcaption>
-</figure>
-
-<figure>
-  <img src="../../software/aruco_markers/ArucoTag4.jpg" width="100" alt="Marker ID 4 — TURN_RIGHT"/>
-  <figcaption>Marker ID 4 — TURN_RIGHT</figcaption>
-</figure>
+<table>
+  <tr>
+    <td align="center">
+      <img src="../../software/aruco_markers/ArucoTag0.jpg" width="100"/>
+      <br/><em>ID 0 — STOP</em>
+    </td>
+    <td width="20"></td>
+    <td align="center">
+      <img src="../../software/aruco_markers/ArucoTag1.jpg" width="100"/>
+      <br/><em>ID 1 — SPEED_60</em>
+    </td>
+    <td width="20"></td>
+    <td align="center">
+      <img src="../../software/aruco_markers/ArucoTag2.jpg" width="100"/>
+      <br/><em>ID 2 — SPEED_100</em>
+    </td>
+    <td width="20"></td>
+    <td align="center">
+      <img src="../../software/aruco_markers/ArucoTag3.jpg" width="100"/>
+      <br/><em>ID 3 — TURN_LEFT</em>
+    </td>
+    <td width="20"></td>
+    <td align="center">
+      <img src="../../software/aruco_markers/ArucoTag4.jpg" width="100"/>
+      <br/><em>ID 4 — TURN_RIGHT</em>
+    </td>
+  </tr>
+</table>
 
 ## Web UI For Control
 
