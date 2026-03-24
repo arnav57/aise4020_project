@@ -38,7 +38,27 @@ When lane switching happens, we also send a serial command over the Pi <-> Ardui
 
 ## ArUco "Traffic Sign" Compliance
 
-We define ArUco patches as traffic signs, as this would provide the easiest implementation for us. Addy created a baseline version of the corresponding node, that I improved with edge-detection based logging/publishing, as well as adding time-based memory and integrated into the codebase. To our existing infrastructure for speed control, turning left or right, and stopping.
+We define ArUco patches as traffic signs, as this would provide the easiest implementation for us. Addy created a baseline standalone ROS2 node (`aruco_detector`) developed and tested independently in VSCode, using `opencv-contrib-python` to validate detection before integration. The node subscribes to the raw camera stream and publishes detected marker IDs and instruction strings on edge transitions only — repeated detections of the same marker do not re-trigger commands. Arnav then improved this with edge-detection based logging/publishing, as well as adding time-based memory and integrated into the codebase, connecting to our existing infrastructure for speed control, turning left or right, and stopping.
+
+Memory of the last seen marker clears after 1 second of no detection, allowing re-detection on the next encounter. The five markers and their assigned instructions are:
+
+| Marker ID | Instruction | Handled By |
+|-----------|-------------|------------|
+| 0 | STOP | `arbiter_node.py` |
+| 1 | SPEED_60 | `pid_node.py` |
+| 2 | SPEED_100 | `pid_node.py` |
+| 3 | TURN_LEFT | `aruco_node.py` → `/lane_cmd` |
+| 4 | TURN_RIGHT | `aruco_node.py` → `/lane_cmd` |
+
+All markers are 30×30mm, generated using the **4x4 (50, 100, 250, 1000)** dictionary at https://chev.me/arucogen/. To regenerate or reprint, set Dictionary to `4x4 (50, 100, 250, 1000)`, enter the corresponding Marker ID, and set Marker size to `30mm`. Ensure the white border is preserved when printing.
+
+*Photos of the printed markers used in testing:*
+
+![Marker ID 0 — STOP](docs/hardware/aruco_markers/marker_0_stop.jpg)
+||![Marker ID 1 — SPEED_60](docs/hardware/aruco_markers/marker_1_speed60.jpg)
+||![Marker ID 2 — SPEED_100](docs/hardware/aruco_markers/marker_2_speed100.jpg)
+||![Marker ID 3 — TURN_LEFT](docs/hardware/aruco_markers/marker_3_turnleft.jpg)
+||![Marker ID 4 — TURN_RIGHT](docs/hardware/aruco_markers/marker_4_turnright.jpg)
 
 ## Web UI For Control
 
