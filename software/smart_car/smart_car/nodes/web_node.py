@@ -59,6 +59,7 @@ class Telemetry:
     battery:    int   = 0
     lane_error: int   = 0
     frame_jpg:  Optional[bytes] = None
+    raw_frame_jpg: Optional[bytes] = None
     lock = threading.Lock()
 
     @classmethod

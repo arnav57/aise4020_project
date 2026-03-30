@@ -73,7 +73,8 @@ class ArbiterNode(Node):
     def _marker_cb(self, msg: String) -> None:
         if msg.data == "STOP":
             self._estop_until = time.time() + ESTOP_LATCH_S
-            self.get_logger().warning('STOP sign seen, stopping for 3s \#safedriving')
+            # guess we dont have to escape the hashtags, python kinda goated ngl
+            self.get_logger().warning('STOP sign seen, stopping for 3s #safedriving')
 
     def _auto_enable_cb(self, msg: Bool) -> None:
         self._auto_enabled = msg.data

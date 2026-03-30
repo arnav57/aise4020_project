@@ -22,7 +22,13 @@ class LaneConfig:
     adaptive_block: int = 31       # neighbourhood size for adaptive threshold
     adaptive_c: int = 8            # how much darker than neighbourhood = tape
 
-
+# I hate this so much. this algorithm breaks under the smallest things going wrong.
+# "Is there glare on the tape?", "is your tape too congested", "are your lanes too close?"
+# This algorithm says fuck the lanes, and more specifically FUCK YOU for trying!
+# this should be changed and ideally should be handled by another vision model...
+# but we have the equivalent of hobbyist hardware (0 compute) and pid control requires high FPS so the car
+# doesnt shit itself and die catastrophically. This should never be used for anything safety critical
+# I love traditional image processing when it isnt a complete shitshow! 
 def detect_lane(
     frame: np.ndarray,
     config: LaneConfig,

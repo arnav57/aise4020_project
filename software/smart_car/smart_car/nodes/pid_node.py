@@ -43,7 +43,7 @@ class PIDNode(Node):
         self.declare_parameter('ki',    0.000)
         self.declare_parameter('kd',    0.100)
         self.declare_parameter('k_cam', 0.0075)
-        self.declare_parameter('speed', 0.15)
+        self.declare_parameter('speed', 0.10)
         self.add_on_set_parameters_callback(self._param_cb)
 
         # --- PID controller (from lib) ---
